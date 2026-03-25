@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCashfree, PLAN_CONFIG } from '@/lib/cashfree';
+import { getAppUrl } from '@/lib/env';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 export async function POST(request: Request) {
@@ -25,6 +26,7 @@ export async function POST(request: Request) {
 
     const plan = PLAN_CONFIG[planType as keyof typeof PLAN_CONFIG];
     const orderId = `order_${user.id.slice(0, 8)}_${Date.now()}`;
+    const appUrl = getAppUrl();
 
     const cashfree = getCashfree();
 
@@ -39,8 +41,8 @@ export async function POST(request: Request) {
         customer_name: profile?.full_name || 'Subscriber',
       },
       order_meta: {
-        return_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/cashfree/verify?order_id=${orderId}`,
-        notify_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/cashfree/webhook`,
+        return_url: `${appUrl}/api/cashfree/verify?order_id=${orderId}`,
+        notify_url: `${appUrl}/api/cashfree/webhook`,
       },
       order_note: `GolfGives ${plan.name} subscription`,
       order_tags: {

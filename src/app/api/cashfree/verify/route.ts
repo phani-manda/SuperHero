@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server';
 import { getCashfree, PLAN_CONFIG } from '@/lib/cashfree';
+import { getAppUrl } from '@/lib/env';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 export async function GET(request: Request) {
+  const appUrl = getAppUrl();
   const { searchParams } = new URL(request.url);
   const orderId = searchParams.get('order_id');
 
   if (!orderId) {
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/subscribe?error=missing_order`);
+    return NextResponse.redirect(`${appUrl}/subscribe?error=missing_order`);
   }
 
   try {
@@ -21,7 +23,7 @@ export async function GET(request: Request) {
 
     if (!successfulPayment) {
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/subscribe?error=payment_failed`
+        `${appUrl}/subscribe?error=payment_failed`
       );
     }
 
@@ -33,7 +35,7 @@ export async function GET(request: Request) {
 
     if (!userId) {
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/subscribe?error=invalid_order`
+        `${appUrl}/subscribe?error=invalid_order`
       );
     }
 
@@ -111,12 +113,12 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success`
+      `${appUrl}/dashboard?payment=success`
     );
   } catch (err) {
     console.error('Cashfree verify error:', err);
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/subscribe?error=verification_failed`
+      `${appUrl}/subscribe?error=verification_failed`
     );
   }
 }
