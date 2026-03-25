@@ -8,7 +8,7 @@ export default async function AdminWinnersPage() {
   const { data: winners } = await supabase
     .from('winners')
     .select('*, profiles(full_name, email), draws(draw_month)')
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false }) as any;
 
   return (
     <div>
@@ -30,7 +30,7 @@ export default async function AdminWinnersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {winners?.map((winner) => (
+              {winners?.map((winner: any) => (
                 <tr key={winner.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3">
                     <p className="font-medium text-gray-900">

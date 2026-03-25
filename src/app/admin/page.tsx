@@ -8,20 +8,20 @@ export default async function AdminOverview() {
 
   const [usersRes, subsRes, charitiesRes, drawsRes, winnersRes, contributionsRes] =
     await Promise.all([
-      supabase.from('profiles').select('id', { count: 'exact', head: true }),
-      supabase.from('subscriptions').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-      supabase.from('charities').select('id', { count: 'exact', head: true }).eq('is_active', true),
-      supabase.from('draws').select('id, total_pool_amount').eq('status', 'published'),
-      supabase.from('winners').select('prize_amount'),
-      supabase.from('charity_contributions').select('amount'),
+      supabase.from('profiles').select('id', { count: 'exact', head: true }) as any,
+      supabase.from('subscriptions').select('id', { count: 'exact', head: true }).eq('status', 'active') as any,
+      supabase.from('charities').select('id', { count: 'exact', head: true }).eq('is_active', true) as any,
+      supabase.from('draws').select('id, total_pool_amount').eq('status', 'published') as any,
+      supabase.from('winners').select('prize_amount') as any,
+      supabase.from('charity_contributions').select('amount') as any,
     ]);
 
   const totalUsers = usersRes.count || 0;
   const activeSubscribers = subsRes.count || 0;
   const totalCharities = charitiesRes.count || 0;
-  const totalPrizePool = drawsRes.data?.reduce((s, d) => s + d.total_pool_amount, 0) || 0;
-  const totalPrizesPaid = winnersRes.data?.reduce((s, w) => s + w.prize_amount, 0) || 0;
-  const totalCharityContributions = contributionsRes.data?.reduce((s, c) => s + c.amount, 0) || 0;
+  const totalPrizePool = drawsRes.data?.reduce((s: any, d: any) => s + d.total_pool_amount, 0) || 0;
+  const totalPrizesPaid = winnersRes.data?.reduce((s: any, w: any) => s + w.prize_amount, 0) || 0;
+  const totalCharityContributions = contributionsRes.data?.reduce((s: any, c: any) => s + c.amount, 0) || 0;
 
   const stats = [
     { label: 'Total Users', value: totalUsers, icon: Users, color: 'text-blue-600 bg-blue-50' },

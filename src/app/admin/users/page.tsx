@@ -8,7 +8,7 @@ export default async function AdminUsersPage() {
   const { data: users } = await supabase
     .from('profiles')
     .select('*, subscriptions(status, plan_type)')
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false }) as any;
 
   return (
     <div>
@@ -27,7 +27,7 @@ export default async function AdminUsersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {users?.map((user) => {
+              {users?.map((user: any) => {
                 const activeSub = Array.isArray(user.subscriptions)
                   ? user.subscriptions.find((s: { status: string }) => s.status === 'active')
                   : null;

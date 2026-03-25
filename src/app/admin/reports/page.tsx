@@ -7,11 +7,11 @@ export default async function AdminReportsPage() {
 
   // Gather analytics data
   const [usersRes, subsRes, drawsRes, contributionsRes, winnersRes] = await Promise.all([
-    supabase.from('profiles').select('id, created_at'),
-    supabase.from('subscriptions').select('id, plan_type, status'),
-    supabase.from('draws').select('id, draw_month, total_pool_amount, status'),
-    supabase.from('charity_contributions').select('amount, charity_id, charities(name)'),
-    supabase.from('winners').select('prize_amount, match_type, payment_status'),
+    supabase.from('profiles').select('id, created_at') as any,
+    supabase.from('subscriptions').select('id, plan_type, status') as any,
+    supabase.from('draws').select('id, draw_month, total_pool_amount, status') as any,
+    supabase.from('charity_contributions').select('amount, charity_id, charities(name)') as any,
+    supabase.from('winners').select('prize_amount, match_type, payment_status') as any,
   ]);
 
   const users = usersRes.data || [];
@@ -20,14 +20,14 @@ export default async function AdminReportsPage() {
   const contributions = contributionsRes.data || [];
   const winners = winnersRes.data || [];
 
-  const activeSubs = subs.filter((s) => s.status === 'active');
-  const monthlyCount = activeSubs.filter((s) => s.plan_type === 'monthly').length;
-  const yearlyCount = activeSubs.filter((s) => s.plan_type === 'yearly').length;
+  const activeSubs = subs.filter((s: any) => s.status === 'active');
+  const monthlyCount = activeSubs.filter((s: any) => s.plan_type === 'monthly').length;
+  const yearlyCount = activeSubs.filter((s: any) => s.plan_type === 'yearly').length;
 
-  const totalCharityAmount = contributions.reduce((s, c) => s + c.amount, 0);
+  const totalCharityAmount = contributions.reduce((s: any, c: any) => s + c.amount, 0);
   const totalPrizesPaid = winners
-    .filter((w) => w.payment_status === 'paid')
-    .reduce((s, w) => s + w.prize_amount, 0);
+    .filter((w: any) => w.payment_status === 'paid')
+    .reduce((s: any, w: any) => s + w.prize_amount, 0);
 
   // Group contributions by charity
   const charityBreakdown: Record<string, number> = {};
@@ -37,11 +37,11 @@ export default async function AdminReportsPage() {
   }
 
   // Draw statistics
-  const publishedDraws = draws.filter((d) => d.status === 'published');
+  const publishedDraws = draws.filter((d: any) => d.status === 'published');
   const matchBreakdown = {
-    '5-match': winners.filter((w) => w.match_type === '5-match').length,
-    '4-match': winners.filter((w) => w.match_type === '4-match').length,
-    '3-match': winners.filter((w) => w.match_type === '3-match').length,
+    '5-match': winners.filter((w: any) => w.match_type === '5-match').length,
+    '4-match': winners.filter((w: any) => w.match_type === '4-match').length,
+    '3-match': winners.filter((w: any) => w.match_type === '3-match').length,
   };
 
   return (

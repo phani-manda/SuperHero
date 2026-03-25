@@ -8,7 +8,7 @@ export default async function AdminDrawsPage() {
   const { data: draws } = await supabase
     .from('draws')
     .select('*')
-    .order('draw_date', { ascending: false });
+    .order('draw_date', { ascending: false }) as any;
 
   return (
     <div>
@@ -32,7 +32,7 @@ export default async function AdminDrawsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {draws?.map((draw) => (
+              {draws?.map((draw: any) => (
                 <tr key={draw.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium">{draw.draw_month}</td>
                   <td className="px-4 py-3">

@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { Navbar } from '@/components/layout/navbar';
 import { HowItWorksSection } from '@/components/home/how-it-works-section';
 import { CTASection } from '@/components/home/cta-section';

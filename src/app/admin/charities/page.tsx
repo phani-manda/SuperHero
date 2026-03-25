@@ -5,10 +5,11 @@ import { AdminCharityForm } from '@/components/admin/admin-charity-form';
 export default async function AdminCharitiesPage() {
   const supabase = createServerSupabaseClient();
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: charities } = await supabase
     .from('charities')
     .select('*')
-    .order('name');
+    .order('name') as any;
 
   return (
     <div>
@@ -18,7 +19,7 @@ export default async function AdminCharitiesPage() {
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
-        {charities?.map((charity) => (
+        {charities?.map((charity: any) => (
           <div
             key={charity.id}
             className="bg-white rounded-xl border border-gray-200 p-5"
