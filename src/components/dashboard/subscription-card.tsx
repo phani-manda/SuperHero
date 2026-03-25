@@ -4,8 +4,6 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/utils';
 import { CreditCard, AlertCircle } from 'lucide-react';
-import { toast } from 'sonner';
-import { useState } from 'react';
 import Link from 'next/link';
 
 interface Subscription {
@@ -17,20 +15,8 @@ interface Subscription {
 }
 
 export function SubscriptionCard({ subscription }: { subscription: Subscription | null }) {
-  const [loading, setLoading] = useState(false);
-
-  async function handleManage() {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/stripe/portal', { method: 'POST' });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      window.location.href = data.url;
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Failed to open portal');
-    } finally {
-      setLoading(false);
-    }
+  function handleRenew() {
+    window.location.href = '/subscribe';
   }
 
   if (!subscription) {
@@ -89,8 +75,8 @@ export function SubscriptionCard({ subscription }: { subscription: Subscription 
               Cancels at end of current period
             </p>
           )}
-          <Button variant="outline" size="sm" onClick={handleManage} loading={loading} className="w-full mt-2">
-            Manage Subscription
+          <Button variant="outline" size="sm" onClick={handleRenew} className="w-full mt-2">
+            Renew / Change Plan
           </Button>
         </div>
       </CardContent>
