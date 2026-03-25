@@ -1,18 +1,29 @@
-import Link from 'next/link';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { Navbar } from '@/components/layout/navbar';
+import { Hero } from '@/components/home/hero';
+import { HowItWorksSection } from '@/components/home/how-it-works-section';
+import { FeaturedCharities } from '@/components/home/featured-charities';
+import { CTASection } from '@/components/home/cta-section';
+import { Footer } from '@/components/layout/footer';
 
-export default function Home() {
+export default async function Home() {
+  const supabase = createServerSupabaseClient();
+  const { data: charities } = await supabase
+    .from('charities')
+    .select('id, name, slug, description')
+    .eq('is_active', true)
+    .eq('is_featured', true)
+    .order('name')
+    .limit(3);
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-8">
-      <h1 className="text-4xl font-bold text-brand-700 mb-4">GolfGives</h1>
-      <p className="text-lg text-gray-600 mb-8 text-center max-w-md">
-        Play. Win. Give Back. — Coming soon.
-      </p>
-      <Link
-        href="/auth/login"
-        className="rounded-full bg-brand-600 px-8 py-3 text-white font-semibold hover:bg-brand-700 transition-colors"
-      >
-        Get Started
-      </Link>
-    </main>
+    <div className="min-h-screen">
+      <Navbar />
+      <Hero />
+      <HowItWorksSection />
+      <FeaturedCharities charities={charities || []} />
+      <CTASection />
+      <Footer />
+    </div>
   );
 }
