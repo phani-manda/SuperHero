@@ -1,6 +1,7 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { formatCurrency } from '@/lib/utils';
 import { AdminCharityForm } from '@/components/admin/admin-charity-form';
+import { AdminCharityActions } from '@/components/admin/admin-charity-actions';
 
 export default async function AdminCharitiesPage() {
   const supabase = createServerSupabaseClient();
@@ -25,13 +26,13 @@ export default async function AdminCharitiesPage() {
             className="bg-white rounded-xl border border-gray-200 p-5"
           >
             <div className="flex items-start justify-between">
-              <div>
+              <div className="flex-1">
                 <h3 className="font-semibold text-gray-900">{charity.name}</h3>
                 <p className="text-sm text-gray-500 mt-1 line-clamp-2">
                   {charity.description}
                 </p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-shrink-0 ml-2">
                 {charity.is_featured && (
                   <span className="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded-full">
                     Featured
@@ -46,10 +47,11 @@ export default async function AdminCharitiesPage() {
                 </span>
               </div>
             </div>
-            <div className="mt-3 pt-3 border-t border-gray-100">
+            <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
               <p className="text-sm text-brand-600 font-medium">
                 {formatCurrency(charity.total_received)} raised
               </p>
+              <AdminCharityActions charity={charity} />
             </div>
           </div>
         ))}
@@ -57,3 +59,4 @@ export default async function AdminCharitiesPage() {
     </div>
   );
 }
+

@@ -4,6 +4,7 @@ import { ScoreEntry } from '@/components/scores/score-entry';
 import { SubscriptionCard } from '@/components/dashboard/subscription-card';
 import { CharitySelector } from '@/components/dashboard/charity-selector';
 import { DrawsSummary } from '@/components/dashboard/draws-summary';
+import { WinnerProofUpload } from '@/components/dashboard/winner-proof-upload';
 import { Navbar } from '@/components/layout/navbar';
 
 export default async function DashboardPage() {
@@ -47,6 +48,11 @@ export default async function DashboardPage() {
   const entries = entriesRes.data || [];
   const winners = winnersRes.data || [];
 
+  // Winners needing proof upload (won but no proof uploaded yet)
+  const winnersNeedingProof = winners.filter(
+    (w: any) => !w.proof_url && w.verification_status === 'pending'
+  );
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -59,6 +65,15 @@ export default async function DashboardPage() {
             Manage your scores, track draws, and support your charity.
           </p>
         </div>
+
+        {/* Winner proof upload alerts */}
+        {winnersNeedingProof.length > 0 && (
+          <div className="mb-6 space-y-4">
+            {winnersNeedingProof.map((winner: any) => (
+              <WinnerProofUpload key={winner.id} winner={winner} />
+            ))}
+          </div>
+        )}
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Main column */}
@@ -81,3 +96,4 @@ export default async function DashboardPage() {
     </div>
   );
 }
+

@@ -68,7 +68,7 @@ export async function POST(request: Request) {
   // Get previous jackpot rollover
   const { data: previousDraw } = await supabase
     .from('draws')
-    .select('jackpot_rollover, five_match_pool')
+    .select('id, jackpot_rollover, five_match_pool')
     .eq('status', 'published')
     .order('draw_date', { ascending: false })
     .limit(1)
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
     const { data: prevWinners } = await supabase
       .from('winners')
       .select('id')
-      .eq('draw_id', previousDraw.jackpot_rollover.toString())
+      .eq('draw_id', previousDraw.id)
       .eq('match_type', '5-match')
       .limit(1);
 

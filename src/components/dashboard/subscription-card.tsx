@@ -1,10 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/utils';
 import { CreditCard, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 interface Subscription {
   id: string;
@@ -15,8 +18,27 @@ interface Subscription {
 }
 
 export function SubscriptionCard({ subscription }: { subscription: Subscription | null }) {
-  function handleRenew() {
-    window.location.href = '/subscribe';
+  const [canceling, setCanceling] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const router = useRouter();
+
+  async function handleCancel() {
+    setCanceling(true);
+    try {
+      const res = await fetch('/api/subscriptions/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      toast.success(data.message || 'Subscription will be canceled at period end');
+      setShowConfirm(false);
+      router.refresh();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Cancel failed');
+    } finally {
+      setCanceling(false);
+    }
   }
 
   if (!subscription) {
@@ -75,11 +97,49 @@ export function SubscriptionCard({ subscription }: { subscription: Subscription 
               Cancels at end of current period
             </p>
           )}
-          <Button variant="outline" size="sm" onClick={handleRenew} className="w-full mt-2">
-            Renew / Change Plan
-          </Button>
+          <div className="flex gap-2 mt-2">
+            <Link href="/subscribe" className="flex-1">
+              <Button variant="outline" size="sm" className="w-full">
+                Renew / Change Plan
+              </Button>
+            </Link>
+            {!subscription.cancel_at_period_end && (
+              <>
+                {showConfirm ? (
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCancel}
+                      loading={canceling}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      Confirm
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowConfirm(false)}
+                    >
+                      No
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowConfirm(true)}
+                    className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                  >
+                    Cancel
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
   );
 }
+

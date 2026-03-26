@@ -1,6 +1,7 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { formatDate } from '@/lib/utils';
 import { AdminUserActions } from '@/components/admin/admin-user-actions';
+import { AdminScoreEditor } from '@/components/admin/admin-score-editor';
 
 export default async function AdminUsersPage() {
   const supabase = createServerSupabaseClient();
@@ -59,7 +60,10 @@ export default async function AdminUsersPage() {
                       {formatDate(user.created_at)}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <AdminUserActions userId={user.id} currentRole={user.role} />
+                      <div className="flex items-center justify-end gap-1">
+                        <AdminScoreEditor userId={user.id} userName={user.full_name || user.email} />
+                        <AdminUserActions userId={user.id} currentRole={user.role} />
+                      </div>
                     </td>
                   </tr>
                 );
@@ -71,3 +75,4 @@ export default async function AdminUsersPage() {
     </div>
   );
 }
+

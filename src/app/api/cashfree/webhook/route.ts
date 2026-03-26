@@ -42,7 +42,7 @@ export async function POST(request: Request) {
       const { data: existing } = await supabase
         .from('subscriptions')
         .select('id')
-        .eq('stripe_subscription_id', orderId)
+        .eq('payment_order_id', orderId)
         .single() as any;
 
       if (existing) {
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
       } else {
         await supabase.from('subscriptions').insert({
           user_id: userId,
-          stripe_subscription_id: orderId,
+          payment_order_id: orderId,
           plan_type: planType,
           status: 'active',
           current_period_start: now.toISOString(),
@@ -104,7 +104,7 @@ export async function POST(request: Request) {
         await supabase
           .from('subscriptions')
           .update({ status: 'past_due' })
-          .eq('stripe_subscription_id', orderId);
+          .eq('payment_order_id', orderId);
       }
     }
 

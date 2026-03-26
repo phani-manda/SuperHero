@@ -1,5 +1,6 @@
 -- ============================================
--- Golf Charity Platform — Initial Schema
+-- Golf Charity Platform — Combined Schema
+-- (Consolidates migrations 001–004)
 -- ============================================
 
 -- Enums
@@ -21,7 +22,7 @@ CREATE TABLE profiles (
   full_name TEXT,
   avatar_url TEXT,
   role user_role NOT NULL DEFAULT 'user',
-  stripe_customer_id TEXT UNIQUE,
+  cashfree_customer_id TEXT UNIQUE,           -- formerly stripe_customer_id
   selected_charity_id UUID,
   charity_percentage INTEGER NOT NULL DEFAULT 10 CHECK (charity_percentage >= 10 AND charity_percentage <= 100),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -34,7 +35,7 @@ CREATE TABLE profiles (
 CREATE TABLE subscriptions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  stripe_subscription_id TEXT NOT NULL UNIQUE,
+  payment_order_id TEXT NOT NULL UNIQUE,      -- formerly stripe_subscription_id
   plan_type TEXT NOT NULL CHECK (plan_type IN ('monthly', 'yearly')),
   status subscription_status NOT NULL DEFAULT 'incomplete',
   current_period_start TIMESTAMPTZ NOT NULL,
@@ -244,6 +245,26 @@ CREATE TRIGGER tr_score_position
   BEFORE INSERT ON scores
   FOR EACH ROW EXECUTE FUNCTION manage_score_position();
 
+-- Score frequencies function for algorithmic draw logic
+CREATE OR REPLACE FUNCTION get_score_frequencies()
+RETURNS TABLE(score INTEGER, count BIGINT) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    s.score::INTEGER,
+    COUNT(*)::BIGINT as count
+  FROM scores s
+  INNER JOIN subscriptions sub ON sub.user_id = s.user_id
+  WHERE sub.status = 'active'
+    AND sub.current_period_end > NOW()
+  GROUP BY s.score
+  ORDER BY count DESC, s.score ASC;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION get_score_frequencies() TO authenticated;
+COMMENT ON FUNCTION get_score_frequencies() IS 'Returns score frequencies for active subscribers, used in algorithmic draw calculations';
+
 -- ============================================
 -- Row Level Security
 -- ============================================
@@ -372,6 +393,84 @@ CREATE POLICY "Admins can manage contributions"
   );
 
 -- ============================================
+-- Storage Buckets
+-- ============================================
+
+-- Winner Proofs bucket (private)
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('winner-proofs', 'winner-proofs', false);
+
+-- Charity Events bucket (public)
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('charity-events', 'charity-events', true);
+
+-- Charity Media bucket (public)
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('charity-media', 'charity-media', true);
+
+COMMENT ON COLUMN storage.buckets.id IS 'Storage bucket configuration for SuperHero file uploads';
+
+-- RLS Policies for winner-proofs bucket
+CREATE POLICY "Users can upload their own winner proofs"
+ON storage.objects FOR INSERT
+WITH CHECK (
+  bucket_id = 'winner-proofs' AND
+  auth.uid()::text = (storage.foldername(name))[1]
+);
+
+CREATE POLICY "Users can view their own winner proofs"
+ON storage.objects FOR SELECT
+USING (
+  bucket_id = 'winner-proofs' AND
+  auth.uid()::text = (storage.foldername(name))[1]
+);
+
+CREATE POLICY "Admins can view all winner proofs"
+ON storage.objects FOR SELECT
+USING (
+  bucket_id = 'winner-proofs' AND
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+-- RLS Policies for charity-events bucket
+CREATE POLICY "Public can view charity event images"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'charity-events');
+
+CREATE POLICY "Admins can upload charity event images"
+ON storage.objects FOR INSERT
+WITH CHECK (
+  bucket_id = 'charity-events' AND
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+CREATE POLICY "Admins can delete charity event images"
+ON storage.objects FOR DELETE
+USING (
+  bucket_id = 'charity-events' AND
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+-- RLS Policies for charity-media bucket
+CREATE POLICY "Public can view charity media"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'charity-media');
+
+CREATE POLICY "Admins can upload charity media"
+ON storage.objects FOR INSERT
+WITH CHECK (
+  bucket_id = 'charity-media' AND
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+CREATE POLICY "Admins can delete charity media"
+ON storage.objects FOR DELETE
+USING (
+  bucket_id = 'charity-media' AND
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+-- ============================================
 -- Seed data: sample charities
 -- ============================================
 INSERT INTO charities (name, slug, description, is_featured) VALUES
@@ -380,3 +479,47 @@ INSERT INTO charities (name, slug, description, is_featured) VALUES
   ('Green Future Trust', 'green-future-trust', 'Environmental conservation focused on maintaining green spaces and golf course ecosystems.', false),
   ('Swing for Schools', 'swing-for-schools', 'Funding educational scholarships through community golf events and tournaments.', true),
   ('The Caddie Fund', 'the-caddie-fund', 'Supporting caddies and golf course workers with healthcare and emergency assistance.', false);
+
+-- ============================================
+-- Seed data: admin user
+-- Credentials: admin@superhero.golf / Admin@SuperHero123!
+-- ============================================
+DO $$
+DECLARE
+  admin_id UUID := '00000000-0000-0000-0000-000000000001';
+BEGIN
+  -- Insert admin into auth.users (Supabase internal table)
+  INSERT INTO auth.users (
+    id,
+    instance_id,
+    email,
+    encrypted_password,
+    email_confirmed_at,
+    role,
+    aud,
+    raw_app_meta_data,
+    raw_user_meta_data,
+    created_at,
+    updated_at
+  ) VALUES (
+    admin_id,
+    '00000000-0000-0000-0000-000000000000',
+    'admin@superhero.golf',
+    -- bcrypt hash for: Admin@SuperHero123!
+    crypt('Admin@SuperHero123!', gen_salt('bf')),
+    now(),
+    'authenticated',
+    'authenticated',
+    '{"provider":"email","providers":["email"]}',
+    '{"full_name":"Super Admin"}',
+    now(),
+    now()
+  )
+  ON CONFLICT (id) DO NOTHING;
+
+  -- The handle_new_user trigger auto-creates the profile row.
+  -- We just need to elevate the role to admin.
+  UPDATE profiles
+  SET role = 'admin', full_name = 'Super Admin'
+  WHERE id = admin_id;
+END $$;

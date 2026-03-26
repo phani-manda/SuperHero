@@ -72,7 +72,7 @@ export async function GET(request: Request) {
     } else {
       await supabase.from('subscriptions').insert({
         user_id: userId,
-        stripe_subscription_id: orderId,
+        payment_order_id: orderId,
         plan_type: planType,
         status: 'active',
         current_period_start: now.toISOString(),

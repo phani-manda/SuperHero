@@ -19,21 +19,37 @@ interface Charity {
 
 export function CharityList({ charities }: { charities: Charity[] }) {
   const [search, setSearch] = useState('');
+  const [featuredOnly, setFeaturedOnly] = useState(false);
 
-  const filtered = charities.filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = charities.filter((c) => {
+    const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
+      c.description.toLowerCase().includes(search.toLowerCase());
+    const matchesFeatured = !featuredOnly || c.is_featured;
+    return matchesSearch && matchesFeatured;
+  });
 
   return (
     <div>
-      <div className="relative mb-6 max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <Input
-          placeholder="Search charities..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-10"
-        />
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Search charities..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <label className="inline-flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={featuredOnly}
+            onChange={(e) => setFeaturedOnly(e.target.checked)}
+            className="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+          />
+          <Star className="h-3.5 w-3.5 text-accent-500" />
+          Featured only
+        </label>
       </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">

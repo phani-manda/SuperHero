@@ -143,13 +143,44 @@ export default function SubscribePage() {
             ))}
           </div>
 
-          <div className="mt-8 text-center">
+          <div className="mt-8 text-center space-y-3">
             <Button size="lg" onClick={handleSubscribe} loading={loading} className="px-12">
               Subscribe Now
             </Button>
-            <p className="mt-3 text-sm text-gray-400">
+            <p className="text-sm text-gray-400">
               Cancel anytime. Secure payment via Cashfree.
             </p>
+            <div className="border-t border-gray-200 pt-4 mt-4">
+              <p className="text-xs text-gray-400 mb-2">For demo / interviewer testing:</p>
+              <Button
+                variant="outline"
+                size="md"
+                loading={loading}
+                onClick={async () => {
+                  setLoading(true);
+                  try {
+                    const res = await fetch('/api/subscriptions/demo', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ planType: selected }),
+                    });
+                    const data = await res.json();
+                    if (data.error) {
+                      if (res.status === 401) { router.push('/auth/signup'); return; }
+                      throw new Error(data.error);
+                    }
+                    toast.success(data.message || 'Demo subscription activated!');
+                    router.push('/dashboard');
+                  } catch (err: unknown) {
+                    toast.error(err instanceof Error ? err.message : 'Demo failed');
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+              >
+                Demo Subscribe (No Payment)
+              </Button>
+            </div>
           </div>
         </div>
       </main>

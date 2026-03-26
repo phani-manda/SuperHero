@@ -22,7 +22,7 @@ export interface Profile {
   full_name: string | null;
   avatar_url: string | null;
   role: 'user' | 'admin';
-  stripe_customer_id: string | null;
+  cashfree_customer_id: string | null;
   selected_charity_id: string | null;
   charity_percentage: number;
   created_at: string;
@@ -32,7 +32,7 @@ export interface Profile {
 export interface Subscription {
   id: string;
   user_id: string;
-  stripe_subscription_id: string;
+  payment_order_id: string;
   plan_type: 'monthly' | 'yearly';
   status: 'active' | 'canceled' | 'past_due' | 'incomplete';
   current_period_start: string;

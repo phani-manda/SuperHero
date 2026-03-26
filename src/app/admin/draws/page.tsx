@@ -1,6 +1,7 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { DrawActions } from '@/components/admin/draw-actions';
+import { DrawPublishButton } from '@/components/admin/draw-publish-button';
 
 export default async function AdminDrawsPage() {
   const supabase = createServerSupabaseClient();
@@ -29,6 +30,7 @@ export default async function AdminDrawsPage() {
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Pool</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Jackpot Rollover</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Date</th>
+                <th className="text-right px-4 py-3 font-medium text-gray-600">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -70,11 +72,16 @@ export default async function AdminDrawsPage() {
                   <td className="px-4 py-3 text-gray-500">
                     {formatDate(draw.draw_date)}
                   </td>
+                  <td className="px-4 py-3 text-right">
+                    {draw.status === 'simulated' && (
+                      <DrawPublishButton drawId={draw.id} />
+                    )}
+                  </td>
                 </tr>
               ))}
               {(!draws || draws.length === 0) && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan={8} className="px-4 py-8 text-center text-gray-400">
                     No draws yet. Run a simulation to get started.
                   </td>
                 </tr>
@@ -86,3 +93,4 @@ export default async function AdminDrawsPage() {
     </div>
   );
 }
+
