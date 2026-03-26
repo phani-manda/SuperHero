@@ -212,6 +212,9 @@ async function ensureAuthUser(prisma, { email, password, fullName }) {
     console.log(`  - creating auth user ${email}`)
     const inserted = await prisma.$queryRawUnsafe(
       `
+        WITH new_user AS (
+          SELECT gen_random_uuid() AS id
+        )
         INSERT INTO auth.users (
           instance_id,
           id,
@@ -225,19 +228,25 @@ async function ensureAuthUser(prisma, { email, password, fullName }) {
           created_at,
           updated_at
         )
-        VALUES (
+        SELECT
           '00000000-0000-0000-0000-000000000000',
-          gen_random_uuid(),
+          new_user.id,
           'authenticated',
           'authenticated',
           $1::text,
           crypt($2::text, gen_salt('bf')),
           now(),
           '{"provider":"email","providers":["email"]}'::jsonb,
-          jsonb_build_object('full_name', $3::text, 'email', $1::text, 'email_verified', true, 'phone_verified', false),
+          jsonb_build_object(
+            'sub', (new_user.id)::text,
+            'full_name', $3::text,
+            'email', $1::text,
+            'email_verified', true,
+            'phone_verified', false
+          ),
           now(),
           now()
-        )
+        FROM new_user
         RETURNING id
       `,
       email,
@@ -248,6 +257,30 @@ async function ensureAuthUser(prisma, { email, password, fullName }) {
     userId = inserted[0]?.id
     console.log(`Created auth user (${email})`)
   }
+
+  await prisma.$executeRawUnsafe(
+    `
+      UPDATE auth.users
+      SET
+        encrypted_password = crypt($2::text, gen_salt('bf')),
+        email = $3::text,
+        email_confirmed_at = COALESCE(email_confirmed_at, now()),
+        raw_app_meta_data = '{"provider":"email","providers":["email"]}'::jsonb,
+        raw_user_meta_data = jsonb_build_object(
+          'sub', ($1::uuid)::text,
+          'email', $3::text,
+          'full_name', $4::text,
+          'email_verified', true,
+          'phone_verified', false
+        ),
+        updated_at = now()
+      WHERE id = $1::uuid
+    `,
+    userId,
+    password,
+    email,
+    fullName
+  )
 
   console.log(`  - ensuring identity for ${email}`)
   await prisma.$executeRawUnsafe(
@@ -273,7 +306,7 @@ async function ensureAuthUser(prisma, { email, password, fullName }) {
           'phone_verified', false
         ),
         'email',
-        $2,
+        ($1::uuid)::text,
         now(),
         now(),
         now()
@@ -283,6 +316,27 @@ async function ensureAuthUser(prisma, { email, password, fullName }) {
         WHERE user_id = $1::uuid
           AND provider = 'email'
       )
+    `,
+    userId,
+    email,
+    fullName
+  )
+
+  await prisma.$executeRawUnsafe(
+    `
+      UPDATE auth.identities
+      SET
+        provider_id = ($1::uuid)::text,
+        identity_data = jsonb_build_object(
+          'sub', ($1::uuid)::text,
+          'email', $2::text,
+          'full_name', $3::text,
+          'email_verified', true,
+          'phone_verified', false
+        ),
+        updated_at = now()
+      WHERE user_id = $1::uuid
+        AND provider = 'email'
     `,
     userId,
     email,

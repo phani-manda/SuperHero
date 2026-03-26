@@ -9,7 +9,7 @@ import { LogOut, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 
 export function Navbar() {
-  const { user, loading } = useUser();
+  const { user, role, loading } = useUser();
   const router = useRouter();
   const supabase = createClient();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -37,6 +37,11 @@ export function Navbar() {
               <>
                 {user ? (
                   <>
+                    {role === 'admin' && (
+                      <Link href="/admin" className="text-sm text-brand-700 font-medium hover:text-brand-800">
+                        Admin
+                      </Link>
+                    )}
                     <Link href="/dashboard" className="text-sm text-gray-600 hover:text-gray-900">
                       Dashboard
                     </Link>
@@ -78,6 +83,11 @@ export function Navbar() {
             </Link>
             {user ? (
               <>
+                {role === 'admin' && (
+                  <Link href="/admin" className="block py-2 text-sm text-brand-700 font-medium">
+                    Admin
+                  </Link>
+                )}
                 <Link href="/dashboard" className="block py-2 text-sm text-gray-600">
                   Dashboard
                 </Link>
