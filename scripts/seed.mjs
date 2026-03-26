@@ -1,137 +1,206 @@
 /**
- * Supabase Seed Script
- * -------------------
- * Creates the admin user and seeds charities into the remote Supabase project.
- * Run from the project root:  node scripts/seed.mjs
+ * Prisma-based seed script for the Supabase Postgres database.
+ *
+ * Requires:
+ * - DATABASE_URL
+ * - DIRECT_URL
+ *
+ * Run:
+ *   node scripts/seed.mjs
  */
 
-import { createClient } from '@supabase/supabase-js'
+import { PrismaPg } from '@prisma/adapter-pg'
+import { PrismaClient } from '@prisma/client'
+import pg from 'pg'
 import { readFileSync } from 'fs'
 
-// ── Read .env.local manually ─────────────────────────────────────────────────
-const env = {}
-try {
-  const raw = readFileSync('.env.local', 'utf8')
-  for (const line of raw.split(/\r?\n/)) {
-    const match = line.match(/^([^#=\s][^=]*)=(.*)$/)
-    if (match) env[match[1].trim()] = match[2].trim()
+function loadEnvFile() {
+  try {
+    const raw = readFileSync('.env.local', 'utf8')
+    for (const line of raw.split(/\r?\n/)) {
+      const match = line.match(/^([^#=\s][^=]*)=(.*)$/)
+      if (!match) continue
+
+      const key = match[1].trim()
+      let value = match[2].trim()
+
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
+        value = value.slice(1, -1)
+      }
+
+      if (!(key in process.env)) {
+        process.env[key] = value
+      }
+    }
+  } catch {
+    console.error('Could not read .env.local. Run this from the project root.')
+    process.exit(1)
   }
-} catch {
-  console.error('❌  Could not read .env.local. Make sure you run this from the project root.')
+}
+
+loadEnvFile()
+
+if (!process.env.DATABASE_URL || !process.env.DIRECT_URL) {
+  console.error('Missing DATABASE_URL or DIRECT_URL in .env.local')
   process.exit(1)
 }
 
-const SUPABASE_URL = env.NEXT_PUBLIC_SUPABASE_URL
-const SERVICE_ROLE_KEY = env.SUPABASE_SERVICE_ROLE_KEY
+const { Pool } = pg
 
-if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
-  console.error('❌  Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local')
-  process.exit(1)
-}
+const ADMIN_EMAIL = 'admin@superhero.golf'
+const ADMIN_PASSWORD = 'Admin@SuperHero123!'
+const ADMIN_NAME = 'Super Admin'
 
-console.log(`\n🚀  Connecting to: ${SUPABASE_URL}\n`)
-
-// ── Admin Supabase client (uses service role — bypasses RLS) ─────────────────
-const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-  auth: { autoRefreshToken: false, persistSession: false },
-})
-
-// ── 1. Create admin auth user ─────────────────────────────────────────────────
-console.log('👤  Creating admin user…')
-const { data: createData, error: createError } = await supabase.auth.admin.createUser({
-  email: 'admin@superhero.golf',
-  password: 'Admin@SuperHero123!',
-  email_confirm: true,
-  user_metadata: { full_name: 'Super Admin' },
-})
-
-let adminUserId = createData?.user?.id
-
-if (createError) {
-  if (createError.message?.toLowerCase().includes('already registered') ||
-      createError.message?.toLowerCase().includes('already been registered') ||
-      createError.status === 422) {
-    console.log('ℹ️   Admin user already exists — skipping creation.')
-    // Look up the existing user
-    const { data: listData } = await supabase.auth.admin.listUsers({ perPage: 1000 })
-    const existing = listData?.users?.find(u => u.email === 'admin@superhero.golf')
-    adminUserId = existing?.id
-  } else {
-    console.error('❌  Failed to create admin user:', createError.message)
-  }
-} else {
-  console.log(`✅  Admin user created  (id: ${adminUserId})`)
-}
-
-// ── 2. Elevate profile role to admin ─────────────────────────────────────────
-if (adminUserId) {
-  console.log('🔑  Elevating profile role to admin…')
-  const { error: profileError } = await supabase
-    .from('profiles')
-    .update({ role: 'admin', full_name: 'Super Admin' })
-    .eq('id', adminUserId)
-
-  if (profileError) {
-    console.error('❌  Profile update failed:', profileError.message)
-    console.log('    (The profiles table might not exist yet — apply the schema migration first.)')
-  } else {
-    console.log('✅  Profile elevated to admin')
-  }
-}
-
-// ── 3. Seed charities ─────────────────────────────────────────────────────────
-console.log('\n🏌️  Seeding charities…')
 const charities = [
-  {
-    name: 'Golf for Good Foundation',
-    slug: 'golf-for-good',
-    description: 'Supporting youth golf programs and community development through the power of sport.',
-    is_featured: true,
-  },
-  {
-    name: 'Fairway Hearts',
-    slug: 'fairway-hearts',
-    description: 'Providing golf therapy and rehabilitation programs for veterans and first responders.',
-    is_featured: true,
-  },
-  {
-    name: 'Green Future Trust',
-    slug: 'green-future-trust',
-    description: 'Environmental conservation focused on maintaining green spaces and golf course ecosystems.',
-    is_featured: false,
-  },
-  {
-    name: 'Swing for Schools',
-    slug: 'swing-for-schools',
-    description: 'Funding educational scholarships through community golf events and tournaments.',
-    is_featured: true,
-  },
-  {
-    name: 'The Caddie Fund',
-    slug: 'the-caddie-fund',
-    description: 'Supporting caddies and golf course workers with healthcare and emergency assistance.',
-    is_featured: false,
-  },
+  ['Golf for Good Foundation', 'golf-for-good', 'Supporting youth golf programs and community development through the power of sport.', true],
+  ['Fairway Hearts', 'fairway-hearts', 'Providing golf therapy and rehabilitation programs for veterans and first responders.', true],
+  ['Green Future Trust', 'green-future-trust', 'Environmental conservation focused on maintaining green spaces and golf course ecosystems.', false],
+  ['Swing for Schools', 'swing-for-schools', 'Funding educational scholarships through community golf events and tournaments.', true],
+  ['The Caddie Fund', 'the-caddie-fund', 'Supporting caddies and golf course workers with healthcare and emergency assistance.', false],
 ]
 
-const { error: charityError } = await supabase
-  .from('charities')
-  .upsert(charities, { onConflict: 'slug', ignoreDuplicates: false })
+async function ensureAdmin(prisma) {
+  const existing = await prisma.$queryRawUnsafe(
+    'SELECT id FROM auth.users WHERE email = $1 LIMIT 1',
+    ADMIN_EMAIL
+  )
 
-if (charityError) {
-  console.error('❌  Charities seed failed:', charityError.message)
-  console.log('    (The charities table might not exist yet — apply the schema migration first.)')
-} else {
-  console.log('✅  5 charities upserted')
+  let adminId = existing[0]?.id
+
+  if (!adminId) {
+    const inserted = await prisma.$queryRawUnsafe(
+      `
+        INSERT INTO auth.users (
+          instance_id,
+          id,
+          aud,
+          role,
+          email,
+          encrypted_password,
+          email_confirmed_at,
+          raw_app_meta_data,
+          raw_user_meta_data,
+          created_at,
+          updated_at
+        )
+        VALUES (
+          '00000000-0000-0000-0000-000000000000',
+          gen_random_uuid(),
+          'authenticated',
+          'authenticated',
+          $1,
+          crypt($2, gen_salt('bf')),
+          now(),
+          '{"provider":"email","providers":["email"]}'::jsonb,
+          jsonb_build_object('full_name', $3::text),
+          now(),
+          now()
+        )
+        RETURNING id
+      `,
+      ADMIN_EMAIL,
+      ADMIN_PASSWORD,
+      ADMIN_NAME
+    )
+
+    adminId = inserted[0]?.id
+    console.log(`Created admin auth user (${adminId})`)
+  } else {
+    console.log(`Admin auth user already exists (${adminId})`)
+  }
+
+  await prisma.$executeRawUnsafe(
+    `
+      INSERT INTO auth.identities (
+        id,
+        user_id,
+        identity_data,
+        provider,
+        provider_id,
+        last_sign_in_at,
+        created_at,
+        updated_at
+      )
+      SELECT
+        gen_random_uuid(),
+        $1::uuid,
+        jsonb_build_object('sub', $1::text, 'email', $2::text),
+        'email',
+        $2,
+        now(),
+        now(),
+        now()
+      WHERE NOT EXISTS (
+        SELECT 1
+        FROM auth.identities
+        WHERE user_id = $1::uuid
+          AND provider = 'email'
+      )
+    `,
+    adminId,
+    ADMIN_EMAIL
+  )
+
+  await prisma.$executeRawUnsafe(
+    `
+      UPDATE public.profiles
+      SET role = 'admin', full_name = $2, email = $3
+      WHERE id = $1::uuid
+    `,
+    adminId,
+    ADMIN_NAME,
+    ADMIN_EMAIL
+  )
 }
 
-// ── Summary ───────────────────────────────────────────────────────────────────
-console.log(`
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✅  Seeding complete!
+async function ensureCharities(prisma) {
+  for (const [name, slug, description, isFeatured] of charities) {
+    await prisma.$executeRawUnsafe(
+      `
+        INSERT INTO public.charities (name, slug, description, is_featured)
+        VALUES ($1, $2, $3, $4)
+        ON CONFLICT (slug)
+        DO UPDATE SET
+          name = EXCLUDED.name,
+          description = EXCLUDED.description,
+          is_featured = EXCLUDED.is_featured
+      `,
+      name,
+      slug,
+      description,
+      isFeatured
+    )
+  }
 
-Admin credentials:
-  Email   : admin@superhero.golf
-  Password: Admin@SuperHero123!
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-`)
+  console.log(`Upserted ${charities.length} charities`)
+}
+
+async function main() {
+  const adapter = new PrismaPg(
+    new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false },
+    })
+  )
+  const prisma = new PrismaClient({ adapter })
+
+  try {
+    await ensureAdmin(prisma)
+    await ensureCharities(prisma)
+
+    console.log('')
+    console.log('Seed complete.')
+    console.log(`Admin email   : ${ADMIN_EMAIL}`)
+    console.log(`Admin password: ${ADMIN_PASSWORD}`)
+  } catch (error) {
+    console.error('Seed failed:', error.message)
+    process.exitCode = 1
+  } finally {
+    await prisma.$disconnect()
+  }
+}
+
+main()
