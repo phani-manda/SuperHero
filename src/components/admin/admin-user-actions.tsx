@@ -1,6 +1,5 @@
 'use client';
 
-import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
@@ -11,18 +10,19 @@ interface Props {
 }
 
 export function AdminUserActions({ userId, currentRole }: Props) {
-  const supabase = createClient();
   const router = useRouter();
 
   async function toggleRole() {
     const newRole = currentRole === 'admin' ? 'user' : 'admin';
-    const { error } = await supabase
-      .from('profiles')
-      .update({ role: newRole })
-      .eq('id', userId);
+    const res = await fetch('/api/admin/users', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: userId, role: newRole }),
+    });
+    const data = await res.json();
 
-    if (error) {
-      toast.error(error.message);
+    if (data.error) {
+      toast.error(data.error);
     } else {
       toast.success(`Role updated to ${newRole}`);
       router.refresh();
