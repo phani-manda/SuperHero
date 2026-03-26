@@ -31,8 +31,12 @@ export default async function CharityPage({ params }: Props) {
         </Link>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="h-48 bg-gradient-to-br from-brand-200 to-brand-400 flex items-center justify-center">
-            <Heart className="h-16 w-16 text-white" />
+          <div className="h-48 bg-gradient-to-br from-brand-200 to-brand-400 flex items-center justify-center overflow-hidden">
+            {charity.image_url ? (
+              <img src={charity.image_url} alt={charity.name} className="h-full w-full object-cover" />
+            ) : (
+              <Heart className="h-16 w-16 text-white" />
+            )}
           </div>
 
           <div className="p-8">
@@ -60,6 +64,58 @@ export default async function CharityPage({ params }: Props) {
                 <p className="text-xs text-gray-500">Total raised</p>
               </div>
             </div>
+
+            {Array.isArray(charity.upcoming_events) && charity.upcoming_events.length > 0 && (
+              <div className="mb-8">
+                <h2 className="text-lg font-semibold text-gray-900 mb-3">Upcoming Events</h2>
+                <div className="space-y-3">
+                  {charity.upcoming_events.map((event: any, index: number) => (
+                    <div key={`${event.title}-${index}`} className="rounded-lg border border-gray-100 p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="font-medium text-gray-900">{event.title}</p>
+                          <p className="text-sm text-gray-500">{event.date}</p>
+                        </div>
+                        {event.link_url && (
+                          <a
+                            href={event.link_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-brand-600 hover:underline"
+                          >
+                            Learn more
+                          </a>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600 mt-2">{event.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {Array.isArray(charity.media_urls) && charity.media_urls.length > 0 && (
+              <div className="mb-8">
+                <h2 className="text-lg font-semibold text-gray-900 mb-3">Media Gallery</h2>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {charity.media_urls.map((url: string, index: number) => (
+                    <a
+                      key={`${url}-${index}`}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-xl overflow-hidden border border-gray-100 bg-gray-50"
+                    >
+                      {url.endsWith('.mp4') ? (
+                        <video src={url} controls className="h-48 w-full object-cover" />
+                      ) : (
+                        <img src={url} alt={`${charity.name} media ${index + 1}`} className="h-48 w-full object-cover" />
+                      )}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <CharityDonateButton charityId={charity.id} charityName={charity.name} />
           </div>

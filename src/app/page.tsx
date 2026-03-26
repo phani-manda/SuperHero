@@ -10,7 +10,7 @@ export default async function Home() {
   const supabase = createServerSupabaseClient();
   const { data: charities } = await supabase
     .from('charities')
-    .select('id, name, slug, description')
+    .select('id, name, slug, description, image_url')
     .eq('is_active', true)
     .eq('is_featured', true)
     .order('name')

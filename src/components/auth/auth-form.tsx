@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
@@ -15,13 +15,31 @@ interface AuthFormProps {
 export function AuthForm({ mode }: AuthFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [charities, setCharities] = useState<{ id: string; name: string }[]>([]);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     fullName: '',
+    selectedCharityId: '',
+    charityPercentage: 10,
   });
 
   const supabase = createClient();
+
+  useEffect(() => {
+    if (mode !== 'signup') return;
+
+    async function loadCharities() {
+      const { data } = await supabase
+        .from('charities')
+        .select('id, name')
+        .eq('is_active', true)
+        .order('name');
+      if (data) setCharities(data);
+    }
+
+    loadCharities();
+  }, [mode, supabase]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -33,7 +51,11 @@ export function AuthForm({ mode }: AuthFormProps) {
           email: formData.email,
           password: formData.password,
           options: {
-            data: { full_name: formData.fullName },
+            data: {
+              full_name: formData.fullName,
+              selected_charity_id: formData.selectedCharityId || '',
+              charity_percentage: formData.charityPercentage,
+            },
           },
         });
         if (error) throw error;
@@ -70,15 +92,55 @@ export function AuthForm({ mode }: AuthFormProps) {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {mode === 'signup' && (
-          <Input
-            id="fullName"
-            label="Full Name"
-            type="text"
-            placeholder="John Smith"
-            required
-            value={formData.fullName}
-            onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-          />
+          <>
+            <Input
+              id="fullName"
+              label="Full Name"
+              type="text"
+              placeholder="John Smith"
+              required
+              value={formData.fullName}
+              onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+            />
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Choose Your Charity
+              </label>
+              <select
+                required
+                value={formData.selectedCharityId}
+                onChange={(e) => setFormData({ ...formData, selectedCharityId: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+              >
+                <option value="">Select a charity</option>
+                {charities.map((charity) => (
+                  <option key={charity.id} value={charity.id}>
+                    {charity.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Charity Contribution: {formData.charityPercentage}%
+              </label>
+              <input
+                type="range"
+                min={10}
+                max={100}
+                step={5}
+                value={formData.charityPercentage}
+                onChange={(e) => setFormData({ ...formData, charityPercentage: Number(e.target.value) })}
+                className="w-full accent-brand-600"
+              />
+              <div className="flex justify-between text-xs text-gray-400 mt-1">
+                <span>10% minimum</span>
+                <span>100%</span>
+              </div>
+            </div>
+          </>
         )}
 
         <Input

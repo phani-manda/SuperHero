@@ -10,6 +10,7 @@ interface Charity {
   name: string;
   slug: string;
   description: string;
+  image_url?: string | null;
 }
 
 export function FeaturedCharities({ charities }: { charities: Charity[] }) {
@@ -41,8 +42,12 @@ export function FeaturedCharities({ charities }: { charities: Charity[] }) {
             >
               <Link href={`/charities/${charity.slug}`}>
                 <div className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all hover:-translate-y-1 cursor-pointer group h-full">
-                  <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <Heart className="h-6 w-6 text-red-500" />
+                  <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform overflow-hidden">
+                    {charity.image_url ? (
+                      <img src={charity.image_url} alt={charity.name} className="h-full w-full object-cover" />
+                    ) : (
+                      <Heart className="h-6 w-6 text-red-500" />
+                    )}
                   </div>
                   <h3 className="font-semibold text-gray-900 mb-2">{charity.name}</h3>
                   <p className="text-sm text-gray-500 line-clamp-3">{charity.description}</p>

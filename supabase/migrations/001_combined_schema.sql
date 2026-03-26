@@ -73,6 +73,8 @@ CREATE TABLE charities (
   description TEXT NOT NULL,
   image_url TEXT,
   website_url TEXT,
+  media_urls JSONB NOT NULL DEFAULT '[]'::jsonb,
+  upcoming_events JSONB NOT NULL DEFAULT '[]'::jsonb,
   is_featured BOOLEAN NOT NULL DEFAULT false,
   is_active BOOLEAN NOT NULL DEFAULT true,
   total_received INTEGER NOT NULL DEFAULT 0,
@@ -190,17 +192,23 @@ CREATE TRIGGER tr_charities_updated
 
 -- Auto-create profile on user signup
 CREATE OR REPLACE FUNCTION handle_new_user()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
-  INSERT INTO profiles (id, email, full_name)
+  INSERT INTO public.profiles (id, email, full_name, selected_charity_id, charity_percentage)
   VALUES (
     NEW.id,
     NEW.email,
-    COALESCE(NEW.raw_user_meta_data->>'full_name', '')
+    COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
+    NULLIF(NEW.raw_user_meta_data->>'selected_charity_id', '')::uuid,
+    COALESCE(NULLIF(NEW.raw_user_meta_data->>'charity_percentage', '')::integer, 10)
   );
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users

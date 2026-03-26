@@ -58,11 +58,21 @@ export interface Charity {
   description: string;
   image_url: string | null;
   website_url: string | null;
+  media_urls: string[];
+  upcoming_events: CharityEvent[];
   is_featured: boolean;
   is_active: boolean;
   total_received: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface CharityEvent {
+  title: string;
+  date: string;
+  description: string;
+  image_url?: string | null;
+  link_url?: string | null;
 }
 
 export interface Draw {

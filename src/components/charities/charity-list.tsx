@@ -55,12 +55,21 @@ export function CharityList({ charities }: { charities: Charity[] }) {
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filtered.map((charity) => (
           <Link key={charity.id} href={`/charities/${charity.slug}`}>
-            <Card className="h-full hover:shadow-md transition-shadow cursor-pointer group">
-              <div className="h-40 bg-gradient-to-br from-brand-100 to-brand-200 rounded-t-xl flex items-center justify-center relative">
-                <Heart className="h-12 w-12 text-brand-400 group-hover:scale-110 transition-transform" />
-                {charity.is_featured && (
-                  <span className="absolute top-3 right-3 flex items-center gap-1 bg-accent-500 text-white text-xs font-medium px-2 py-1 rounded-full">
-                    <Star className="h-3 w-3" /> Featured
+              <Card className="h-full hover:shadow-md transition-shadow cursor-pointer group">
+                <div className="h-40 bg-gradient-to-br from-brand-100 to-brand-200 rounded-t-xl flex items-center justify-center relative overflow-hidden">
+                  {charity.image_url ? (
+                    <img
+                      src={charity.image_url}
+                      alt={charity.name}
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                  ) : (
+                    <Heart className="h-12 w-12 text-brand-400 group-hover:scale-110 transition-transform" />
+                  )}
+                  <div className="absolute inset-0 bg-black/10" />
+                  {charity.is_featured && (
+                    <span className="absolute top-3 right-3 flex items-center gap-1 bg-accent-500 text-white text-xs font-medium px-2 py-1 rounded-full">
+                      <Star className="h-3 w-3" /> Featured
                   </span>
                 )}
               </div>

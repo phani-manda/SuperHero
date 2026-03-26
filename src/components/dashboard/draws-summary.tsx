@@ -34,6 +34,10 @@ interface Props {
 export function DrawsSummary({ entries, winners }: Props) {
   const totalWon = winners.reduce((sum, w) => sum + w.prize_amount, 0);
   const pendingPayouts = winners.filter((w) => w.payment_status === 'pending' && w.verification_status === 'approved');
+  const nextMonth = new Intl.DateTimeFormat('en-IN', {
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1));
 
   return (
     <Card>
@@ -58,6 +62,13 @@ export function DrawsSummary({ entries, winners }: Props) {
             <p className="text-2xl font-bold text-accent-600">{formatCurrency(totalWon)}</p>
             <p className="text-xs text-gray-500">Total Won</p>
           </div>
+        </div>
+
+        <div className="rounded-lg bg-blue-50 border border-blue-100 p-3">
+          <p className="text-sm font-medium text-blue-900">Upcoming Draw</p>
+          <p className="text-sm text-blue-700 mt-1">
+            The next monthly draw is scheduled for {nextMonth}.
+          </p>
         </div>
 
         {/* Pending payouts */}
