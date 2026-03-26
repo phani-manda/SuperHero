@@ -4,6 +4,9 @@ import { getAppUrl } from '@/lib/env';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { sendSubscriptionActivatedEmail } from '@/lib/notifications';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(request: Request) {
   const appUrl = getAppUrl();
   const { searchParams } = new URL(request.url);

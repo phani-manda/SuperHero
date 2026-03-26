@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // GET /api/charities — list all active charities
 export async function GET(request: Request) {
   const supabase = createServerSupabaseClient();
