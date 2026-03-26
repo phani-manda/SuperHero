@@ -5,13 +5,14 @@ import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import {
-  Users, Dices, Heart, Trophy, BarChart3, Home, LogOut, Menu, X,
+  Users, Dices, Heart, Trophy, BarChart3, Home, LogOut, Menu, X, CreditCard,
 } from 'lucide-react';
 import { useState } from 'react';
 
 const navItems = [
   { href: '/admin', label: 'Overview', icon: Home },
   { href: '/admin/users', label: 'Users', icon: Users },
+  { href: '/admin/subscriptions', label: 'Subscriptions', icon: CreditCard },
   { href: '/admin/draws', label: 'Draws', icon: Dices },
   { href: '/admin/charities', label: 'Charities', icon: Heart },
   { href: '/admin/winners', label: 'Winners', icon: Trophy },

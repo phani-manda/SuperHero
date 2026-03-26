@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { sendWinnerStatusEmail } from '@/lib/notifications';
 
 // POST /api/winners/verify — upload proof or admin verify
 export async function POST(request: Request) {
@@ -52,6 +53,21 @@ export async function POST(request: Request) {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    const { data: winnerProfile } = await supabase
+      .from('winners')
+      .select('profiles(email, full_name)')
+      .eq('id', winnerId)
+      .single() as any;
+    const target = winnerProfile?.profiles as { email?: string; full_name?: string } | null;
+    if (target?.email) {
+      await sendWinnerStatusEmail({
+        email: target.email,
+        fullName: target.full_name,
+        subject: 'Your winner proof was approved',
+        message: 'your proof has been approved and your payout is now being processed.',
+      });
+    }
   } else if (action === 'reject') {
     const { error } = await supabase
       .from('winners')
@@ -61,6 +77,21 @@ export async function POST(request: Request) {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    const { data: winnerProfile } = await supabase
+      .from('winners')
+      .select('profiles(email, full_name)')
+      .eq('id', winnerId)
+      .single() as any;
+    const target = winnerProfile?.profiles as { email?: string; full_name?: string } | null;
+    if (target?.email) {
+      await sendWinnerStatusEmail({
+        email: target.email,
+        fullName: target.full_name,
+        subject: 'Your winner proof was rejected',
+        message: 'your winner proof was rejected. Please review the dashboard and upload a new proof if needed.',
+      });
+    }
   } else if (action === 'mark_paid') {
     const { error } = await supabase
       .from('winners')
@@ -69,6 +100,21 @@ export async function POST(request: Request) {
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    const { data: winnerProfile } = await supabase
+      .from('winners')
+      .select('profiles(email, full_name)')
+      .eq('id', winnerId)
+      .single() as any;
+    const target = winnerProfile?.profiles as { email?: string; full_name?: string } | null;
+    if (target?.email) {
+      await sendWinnerStatusEmail({
+        email: target.email,
+        fullName: target.full_name,
+        subject: 'Your payout has been completed',
+        message: 'your payout has been marked as completed.',
+      });
     }
   }
 

@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { sendDrawWinnerEmail } from '@/lib/notifications';
+import { formatCurrency } from '@/lib/utils';
 
 // POST /api/draws/publish — publish a simulated draw
 export async function POST(request: Request) {
@@ -75,6 +77,22 @@ export async function POST(request: Request) {
         match_type: matchType,
         prize_amount: prizeAmount,
       });
+
+      const { data: winnerProfile } = await supabase
+        .from('profiles')
+        .select('email, full_name')
+        .eq('id', entry.user_id)
+        .single() as any;
+
+      if (winnerProfile?.email) {
+        await sendDrawWinnerEmail({
+          email: winnerProfile.email,
+          fullName: winnerProfile.full_name,
+          drawMonth: draw.draw_month,
+          prizeAmount: formatCurrency(prizeAmount),
+          matchType,
+        });
+      }
 
       // Update entry prize amount
       await supabase

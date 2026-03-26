@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getCashfree, PLAN_CONFIG } from '@/lib/cashfree';
 import { getAppUrl } from '@/lib/env';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { sendSubscriptionActivatedEmail } from '@/lib/notifications';
 
 export async function GET(request: Request) {
   const appUrl = getAppUrl();
@@ -111,6 +112,19 @@ export async function GET(request: Request) {
           .eq('id', profile.selected_charity_id);
       }
     }
+
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('email, full_name')
+      .eq('id', userId)
+      .single() as any;
+
+    await sendSubscriptionActivatedEmail({
+      email: userProfile?.email || '',
+      fullName: userProfile?.full_name,
+      planType,
+      renewalDate: periodEnd.toDateString(),
+    });
 
     return NextResponse.redirect(
       `${appUrl}/dashboard?payment=success`

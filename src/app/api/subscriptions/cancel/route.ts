@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { sendSubscriptionCanceledEmail } from '@/lib/notifications';
 
 /**
  * POST /api/subscriptions/cancel
@@ -14,6 +15,12 @@ export async function POST(request: Request) {
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('email, full_name')
+    .eq('id', user.id)
+    .single() as any;
 
   // Get user's active subscription
   const { data: subscription, error: fetchError } = await supabase
@@ -56,6 +63,12 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+
+  await sendSubscriptionCanceledEmail({
+    email: profile?.email || user.email || '',
+    fullName: profile?.full_name || user.user_metadata?.full_name,
+    endDate: new Date(subscription.current_period_end).toDateString(),
+  });
 
   return NextResponse.json({
     message: 'Subscription will be canceled at period end',
