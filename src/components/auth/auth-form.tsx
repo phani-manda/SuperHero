@@ -15,6 +15,7 @@ interface AuthFormProps {
 export function AuthForm({ mode }: AuthFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [loadingCharities, setLoadingCharities] = useState(false);
   const [charities, setCharities] = useState<{ id: string; name: string }[]>([]);
   const [formData, setFormData] = useState({
     email: '',
@@ -30,16 +31,33 @@ export function AuthForm({ mode }: AuthFormProps) {
     if (mode !== 'signup') return;
 
     async function loadCharities() {
-      const { data } = await supabase
-        .from('charities')
-        .select('id, name')
-        .eq('is_active', true)
-        .order('name');
-      if (data) setCharities(data);
+      setLoadingCharities(true);
+
+      try {
+        const response = await fetch('/api/charities', {
+          method: 'GET',
+          cache: 'no-store',
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to load charities');
+        }
+
+        const data = await response.json();
+        setCharities((data.charities || []).map((charity: { id: string; name: string }) => ({
+          id: charity.id,
+          name: charity.name,
+        })));
+      } catch (err) {
+        console.error('Failed to load charities for signup', err);
+        toast.error('Unable to load charities right now.');
+      } finally {
+        setLoadingCharities(false);
+      }
     }
 
     loadCharities();
-  }, [mode, supabase]);
+  }, [mode]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -109,17 +127,29 @@ export function AuthForm({ mode }: AuthFormProps) {
               </label>
               <select
                 required
+                disabled={loadingCharities || charities.length === 0}
                 value={formData.selectedCharityId}
                 onChange={(e) => setFormData({ ...formData, selectedCharityId: e.target.value })}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent"
               >
-                <option value="">Select a charity</option>
+                <option value="">
+                  {loadingCharities
+                    ? 'Loading charities...'
+                    : charities.length > 0
+                      ? 'Select a charity'
+                      : 'No charities available'}
+                </option>
                 {charities.map((charity) => (
                   <option key={charity.id} value={charity.id}>
                     {charity.name}
                   </option>
                 ))}
               </select>
+              {(!loadingCharities && charities.length === 0) && (
+                <p className="mt-2 text-sm text-amber-700">
+                  No active charities are available yet. Add charities from the admin panel or run the demo seed before testing signup.
+                </p>
+              )}
             </div>
 
             <div>
